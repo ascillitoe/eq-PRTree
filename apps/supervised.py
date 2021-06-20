@@ -634,6 +634,8 @@ def create_tree_graph(dt_pickled,pt_pickled,cols,qoi,tree_select,selected_node):
         elif tree_select == 'PT':
             pt = jsonpickle.decode(pt_pickled)
             dot_source = pt.get_graphviz(feature_names=features,file_name='source')
+            print(dot_source)
+            print(pydot.graph_from_dot_data(dot_source))
             graph = pydot.graph_from_dot_data(dot_source)[0]
 
         # Reset stylings so pt and dt match
@@ -653,7 +655,6 @@ def create_tree_graph(dt_pickled,pt_pickled,cols,qoi,tree_select,selected_node):
                 pass
             else:
                 node[0].set('fillcolor','#87CEFA')
-        print(graph)
         return graph.to_string()
 
 def clean_node_label(node,tree):
