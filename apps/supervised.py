@@ -290,7 +290,7 @@ table_header = [
 ]
 
 row1 = html.Tr([html.Td("Decision Tree"),html.Td(id='DT-train'), html.Td(id='DT-test')])
-row2 = html.Tr([html.Td("PolyTree"),html.Td(id='PT-train'), html.Td(id='PT-test')])
+row2 = html.Tr([html.Td("PRTree"),html.Td(id='PT-train'), html.Td(id='PT-test')])
 
 table_body = [html.Tbody([row1, row2])]
 
@@ -368,7 +368,7 @@ timeout_msg = dcc.Markdown(r'''
 Sorry! The computation timed out due to the 30 second time limit imposed by the heroku server. 
 
 You can try:
-- Lowering the polynomial order and/or maximum depth of the PolyTree.
+- Lowering the polynomial order and/or maximum depth of the PRTree.
 - Reducing the number of rows in your dataset and/or dimensions in your dataset.
 - Coming back later, when the server might be less busy.
 ''')
@@ -387,7 +387,7 @@ layout = dbc.Container(
     html.H2("Supervised Machine Learning"),
     dbc.Row(
         [
-            dbc.Col(dcc.Markdown('This app constructs polynomial regression trees in a supervised learning manner. Upload your own data, or choose an example dataset.'),width='auto'),
+            dbc.Col(dcc.Markdown('This app constructs polynomial regression trees (PRTrees) in a supervised learning manner. Upload your own data, or choose an example dataset.'),width='auto'),
             dbc.Col(info,width='auto')
             ], align='center', style={'margin-bottom':'10px'}
     ),

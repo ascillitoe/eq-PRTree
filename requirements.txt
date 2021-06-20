@@ -15,3 +15,4 @@ pylibmc
 func-timeout
 scikit-learn
 dash-interactive-graphviz
+pydot
