@@ -7,7 +7,7 @@ flask_caching
 plotly
 numpy
 pandas
-equadratures==9.1.0
+git+git://github.com/equadratures/equadratures@develop#egg=equadratures
 requests>=2.11.1
 jsonpickle
 gunicorn
