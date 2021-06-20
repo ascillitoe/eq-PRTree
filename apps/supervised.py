@@ -21,7 +21,7 @@ import pandas as pd
 import equadratures as eq
 from sklearn import tree
 from sklearn.datasets import fetch_california_housing
-from utils import convert_latex
+from utils import convert_latex, strip_tree#, print_tree
 from func_timeout import func_timeout, FunctionTimedOut
 import dash_interactive_graphviz as dig
 import pydot
@@ -488,6 +488,7 @@ def load_csv(content, data_option, filename):
     elif data_option == 'cali':
         cali = fetch_california_housing()
         df = pd.DataFrame(data=cali['data'], columns=cali['feature_names'])
+        df['Price'] = cali['target']
         df = df.sample(n = 2000, replace = False, random_state=42) 
         bin_msg = False
 
@@ -528,6 +529,8 @@ def compute_trees_memoize(X_train, y_train, max_depth, order):
     # Polytree fitting
     pt = eq.polytree.PolyTree(splitting_criterion='loss_gradient',order=order,max_depth=max_depth)
     pt.fit(X_train,y_train)
+    pt = strip_tree(pt)
+#    print_tree(pt)
 
     return jsonpickle.encode(dt), jsonpickle.encode(pt)
 
@@ -633,10 +636,7 @@ def create_tree_graph(dt_pickled,pt_pickled,cols,qoi,tree_select,selected_node):
 
         elif tree_select == 'PT':
             pt = jsonpickle.decode(pt_pickled)
-            print(pt)
             dot_source = pt.get_graphviz(feature_names=features,file_name='source')
-            print(dot_source)
-            print(pydot.graph_from_dot_data(dot_source))
             graph = pydot.graph_from_dot_data(dot_source)[0]
 
         # Reset stylings so pt and dt match
@@ -651,7 +651,6 @@ def create_tree_graph(dt_pickled,pt_pickled,cols,qoi,tree_select,selected_node):
         if selected_node is not None and tree_select=='PT':
 
             node = graph.get_node(str(selected_node))
-            print(node)
             if len(node)==0: # This occurs when a selected node no longer exists (i.e. because max_depth reduced after selecting node)
                 pass
             else:
