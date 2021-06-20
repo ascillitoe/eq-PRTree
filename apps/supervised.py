@@ -633,6 +633,7 @@ def create_tree_graph(dt_pickled,pt_pickled,cols,qoi,tree_select,selected_node):
 
         elif tree_select == 'PT':
             pt = jsonpickle.decode(pt_pickled)
+            print(pt)
             dot_source = pt.get_graphviz(feature_names=features,file_name='source')
             print(dot_source)
             print(pydot.graph_from_dot_data(dot_source))
