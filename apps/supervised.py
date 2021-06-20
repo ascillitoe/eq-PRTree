@@ -256,7 +256,7 @@ settings_card = dbc.Card(
             dbc.Row(
                 [
                 dbc.Col(dbc.Button("Compute", id="compute", color="primary"),width='auto'),
-                dbc.Col(dbc.Spinner(html.Div(id='compute-finished'),color="primary"),width=2),
+                dbc.Col(dbc.Spinner(html.Div(id='compute-busy'),color="primary",fullscreen=False,debounce=0.1),width=2),
                 dbc.Col(dbc.Alert(id='compute-warning',color='danger',is_open=False),width='auto'),
                 ], justify='start',align='center'
             ),
@@ -316,6 +316,12 @@ graphviz = html.Div(
         style={'position':'relative','width':'100%','height':'72vh'}
 )
 
+graph_spinner = html.Div(
+    [
+        dbc.Spinner(html.Div(id='graph-busy'),color="primary",fullscreen=False,debounce=0.1)
+    ]
+)
+
 select_tree = dcc.Dropdown(id="tree-select",options=[
             {'label': 'Polynomial Tree', 'value': 'PT'},
             {'label': 'Decision Tree', 'value': 'DT'},
@@ -325,11 +331,11 @@ select_tree = dcc.Dropdown(id="tree-select",options=[
 
 sobol_plot = dcc.Graph(
         figure={},id="sobol-plot",
-        style={'height':'70vh','width':'inherit'}
+        style={'height':'63vh','width':'inherit'}
 )
 
 sobol_msg = r'''
-**Click on a node** to view its polynomial's sensitivity indices (Sobol' indices)!
+**Click on a node** to view its polynomial's sensitivity indices. These show the input variables' contribution to the variance in the polynomial's output!
 '''
 
 viz_card = dbc.Card(
@@ -341,7 +347,12 @@ viz_card = dbc.Card(
                     [
                         dbc.Col(
                             [
-                                dbc.Row(dbc.Col(select_tree,width=6)),
+                                dbc.Row(
+                                    [
+                                        dbc.Col(select_tree,width=6),
+                                        dbc.Col(graph_spinner,width=2)
+                                    ],justify='start',align='center'
+                                ),
                                 dbc.Row(dbc.Col(graphviz,width=12))
                             ],width=8
                         ),
@@ -535,7 +546,7 @@ def compute_trees_memoize(X_train, y_train, max_depth, order):
     return jsonpickle.encode(dt), jsonpickle.encode(pt)
 
 # callback to compute trees
-@app.callback(Output('compute-finished','children'),
+@app.callback(Output('compute-busy','children'),
         Output('compute-warning','is_open'),
         Output('compute-warning','children'),
         Output('dt-data','data'),
@@ -608,7 +619,8 @@ def compute_trees(n_clicks,data,cols,qoi,order,max_depth,test_split, metric):
 # graphviz graphs callbacks
 ###################################################################
 # Generate treee graph
-@app.callback(Output('tree-graph','dot_source'),
+@app.callback(Output('graph-busy','children'),
+    Output('tree-graph','dot_source'),
     Input('dt-data','data'),
     Input('pt-data','data'),
     Input('upload-data-table', 'columns'),
@@ -621,7 +633,7 @@ def create_tree_graph(dt_pickled,pt_pickled,cols,qoi,tree_select,selected_node):
         selected_node = None # Reset if just changed from DT to PT otherwise errors 
 
     if dt_pickled is None or pt_pickled is None:
-        return None
+        return None, None
     else:
         features = [col['name'] for col in cols]
         features.remove(qoi)
@@ -655,7 +667,7 @@ def create_tree_graph(dt_pickled,pt_pickled,cols,qoi,tree_select,selected_node):
                 pass
             else:
                 node[0].set('fillcolor','#87CEFA')
-        return graph.to_string()
+        return None, graph.to_string()
 
 def clean_node_label(node,tree):
     string = node.get('label')
@@ -677,9 +689,9 @@ def clean_node_label(node,tree):
             items = [item.replace('"','') for item in items]
             items = [item.replace('<','') for item in items]
             items = [item.replace('>','') for item in items]
-            tmp = items[1]
-            items[1] = items[2]
-            items[2] = tmp
+            tmp = items[-2]
+            items[-2] = items[-3]
+            items[-3] = tmp
         string = r'\n'.join(items)
         node.set('label',string)
 
