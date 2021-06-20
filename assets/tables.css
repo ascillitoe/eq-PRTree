@@ -1,0 +1,11 @@
+/* Below override table styles in bWLwgP.css */
+th:not(.CalendarDay),
+td:not(.CalendarDay) {
+  padding: 6px 15px !important;
+  text-align: center !important;
+}
+th:first-child:not(.CalendarDay),
+td:first-child:not(.CalendarDay) {
+  padding-left: 12px !important;
+  text-align: left !important;
+}

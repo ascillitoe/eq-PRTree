@@ -1,0 +1,11 @@
+digraph g {
+	node [height=.1 shape=record]
+	node [label="node 1 \n Hole ellipse <= 0.283\n n_samples = 128\n loss = 0.109516" shape=rectangle]
+	node1 [color=black fillcolor="#EBFAFF" fontcolor=black style=filled]
+	node [label="node 6 \n  n_samples = 82\n loss = 0.018291" shape=rectangle]
+	node6 [color=black fillcolor="#E4fEE4" fontcolor=black style=rounded]
+	node1 -> node6 [label="" color=black style=solid]
+	node [label="node 8 \n  n_samples = 46\n loss = 0.042434" shape=rectangle]
+	node8 [color=black fillcolor="#E4fEE4" fontcolor=black style=rounded]
+	node1 -> node8 [label="" color=black style=solid]
+}

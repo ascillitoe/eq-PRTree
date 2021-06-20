@@ -1,0 +1,17 @@
+dash
+dash_core_components
+dash_html_components
+dash_bootstrap_components
+dash_daq
+flask_caching
+plotly
+numpy
+pandas
+equadratures==9.1.0
+requests>=2.11.1
+jsonpickle
+gunicorn
+pylibmc
+func-timeout
+scikit-learn
+dash-interactive-graphviz
