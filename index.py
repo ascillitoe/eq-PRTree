@@ -16,7 +16,7 @@ from utils import convert_latex
 home_text = r'''
 ## Polynomial Regression Trees
 
-rgrgrg
+**Under construction!**
 
 #### References
 \[1]: 
