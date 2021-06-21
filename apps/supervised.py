@@ -25,6 +25,7 @@ from utils import convert_latex, strip_tree#, print_tree
 from func_timeout import func_timeout, FunctionTimedOut
 import dash_interactive_graphviz as dig
 import pydot
+import time
 
 from app import app
 
@@ -635,6 +636,8 @@ def compute_trees(n_clicks,data,cols,qoi,order,max_depth,test_split, metric):
     Input('tree-select','value'),
     Input("tree-graph", "selected_node"))
 def create_tree_graph(dt_pickled,pt_pickled,cols,qoi,tree_select,selected_node):
+    start = time.time()
+
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if 'tree-select' in changed_id:
         selected_node = None # Reset if just changed from DT to PT otherwise errors 
@@ -646,17 +649,22 @@ def create_tree_graph(dt_pickled,pt_pickled,cols,qoi,tree_select,selected_node):
         features.remove(qoi)
 
         if tree_select == 'DT':
+            print('time 1: %.3g' %(time.time() - start))
             dt = jsonpickle.decode(dt_pickled)        
+            print('time 2: %.3g' %(time.time() - start))
             dot_source = tree.export_graphviz(dt, out_file=None, 
                     feature_names=features,
                     filled=False, rounded=True,  
                     special_characters=True)  
             graph = pydot.graph_from_dot_data(dot_source)[0]
+            print('time 3: %.3g' %(time.time() - start))
 
         elif tree_select == 'PT':
             pt = jsonpickle.decode(pt_pickled)
+            print('time 4: %.3g' %(time.time() - start))
             dot_source = pt.get_graphviz(feature_names=features,file_name='source')
             graph = pydot.graph_from_dot_data(dot_source)[0]
+            print('time 5: %.3g' %(time.time() - start))
 
         # Reset stylings so pt and dt match
         for node in graph.get_nodes():
@@ -665,7 +673,8 @@ def create_tree_graph(dt_pickled,pt_pickled,cols,qoi,tree_select,selected_node):
             node.set('fillcolor','white')
         for edge in graph.get_edges():
             edge.set('fillcolor','black')
-
+        print('time 6: %.3g' %(time.time() - start))
+       
         # Highlight selected node (for pt only)
         if selected_node is not None and tree_select=='PT':
             node = graph.get_node(str(selected_node))
@@ -673,6 +682,8 @@ def create_tree_graph(dt_pickled,pt_pickled,cols,qoi,tree_select,selected_node):
                 pass
             else:
                 node[0].set('fillcolor','#87CEFA')
+        print('time 7: %.3g' %(time.time() - start))
+
         return None, graph.to_string()
 
 def clean_node_label(node,tree):
