@@ -5,7 +5,8 @@ import dash_bootstrap_components as dbc
 import dash_daq as daq
 import dash_table
 from dash_table.Format import Format, Scheme, Trim
-from dash.dependencies import Input, Output, State, ALL
+#from dash.dependencies import Input, Output, State, ALL
+from dash_extensions.enrich import Dash, ServersideOutput, Output, Input, State, Trigger
 from flask_caching import Cache
 import plotly.graph_objs as go
 
@@ -14,14 +15,13 @@ import base64
 import io
 import re
 import pickle
-import jsonpickle
 import math
 import numpy as np
 import pandas as pd
 import equadratures as eq
 from sklearn import tree
 from sklearn.datasets import fetch_california_housing
-from utils import convert_latex, strip_tree#, print_tree
+from utils import convert_latex, strip_tree, print_tree
 from func_timeout import func_timeout, FunctionTimedOut
 import dash_interactive_graphviz as dig
 import pydot
@@ -33,12 +33,12 @@ from app import app
 # Setup cache (simple cache if locally run, otherwise configured
 # to use memcachier on heroku)
 ###################################################################
-cache = Cache(app.server, config={
-    'CACHE_TYPE': 'filesystem',
-    'CACHE_DIR': './tmp/',
-    'CACHE_DEFAULT_TIMEOUT': 3600,
-})
-
+#cache = Cache(app.server, config={
+#    'CACHE_TYPE': 'filesystem',
+#    'CACHE_DIR': './tmp/',
+#    'CACHE_DEFAULT_TIMEOUT': 3600,
+#})
+#
 #cache_servers = os.environ.get('MEMCACHIER_SERVERS')
 #if cache_servers == None:
 #    # Fall back to simple in memory cache (development)
@@ -538,7 +538,7 @@ def populate_qoi(columns,data_option):
 # Function to compute trees
 ###################################################################
 # Compute polytree
-@cache.memoize(timeout=600)
+#@cache.memoize(timeout=600)
 def compute_trees_memoize(X_train, y_train, max_depth, order):
     # Decision tree fitting
     dt = tree.DecisionTreeRegressor(max_depth=max_depth,criterion='mse',min_samples_leaf=2)
@@ -549,22 +549,22 @@ def compute_trees_memoize(X_train, y_train, max_depth, order):
     pt.fit(X_train,y_train)
     pt = strip_tree(pt)
     os.system('ls -lsh ./tmp/')
-#    print_tree(pt)
+    print_tree(pt)
 
-    return jsonpickle.encode(dt), jsonpickle.encode(pt)
+    return dt, pt
 
 # callback to compute trees
 @app.callback(Output('compute-busy','children'),
         Output('compute-warning','is_open'),
         Output('compute-warning','children'),
-        Output('dt-data','data'),
-        Output('pt-data','data'),
+        ServersideOutput('dt-data','data'),
+        ServersideOutput('pt-data','data'),
         Output('DT-train','children'),
         Output('DT-test','children'),
         Output('PT-train','children'),
         Output('PT-test','children'),
         Output("timeout", "is_open"),
-        Input('compute', 'n_clicks'),
+        Trigger('compute', 'n_clicks'),
         Input('upload-data-table', 'data'),
         Input('upload-data-table', 'columns'),
         Input('qoi-select','value'),
@@ -572,8 +572,8 @@ def compute_trees_memoize(X_train, y_train, max_depth, order):
         Input('maxdepth-slider','value'),
         Input('traintest-slider','value'),
         Input('accuracy-select','value'),
-        prevent_initial_call=True)
-def compute_trees(n_clicks,data,cols,qoi,order,max_depth,test_split, metric):
+        prevent_initial_call=True,memoize=False)
+def compute_trees(data,cols,qoi,order,max_depth,test_split, metric):
     # Compute subspace (if button has just been pressed)
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if 'compute' in changed_id:
@@ -599,14 +599,11 @@ def compute_trees(n_clicks,data,cols,qoi,order,max_depth,test_split, metric):
  
             # Compute trees
             try:
-                dt_pickled, pt_pickled = func_timeout(28,compute_trees_memoize,args=(X_train, y_train, max_depth, order))
+                dt, pt = func_timeout(28,compute_trees_memoize,args=(X_train, y_train, max_depth, order))
             except FunctionTimedOut:
                 return None, False, None, None, None,None, None, None, None, True
 
             # Compute scores
-            dt = jsonpickle.decode(dt_pickled)
-            pt = jsonpickle.decode(pt_pickled)
-
             # Training
             dt_train = '%.3g' %eq.datasets.score(y_train, dt.predict(X_train), metric=metric, X=X_train )
             pt_train = '%.3g' %eq.datasets.score(y_train, pt.predict(X_train), metric=metric, X=X_train )
@@ -619,7 +616,7 @@ def compute_trees(n_clicks,data,cols,qoi,order,max_depth,test_split, metric):
                 pt_test = None
 
             # Return data
-            return None, False, None, dt_pickled, pt_pickled, dt_train, dt_test, pt_train, pt_test, False
+            return None, False, None, dt, pt, dt_train, dt_test, pt_train, pt_test, False
 
     return None, False, None, None, None, None, None, None, None, False
 
@@ -635,14 +632,14 @@ def compute_trees(n_clicks,data,cols,qoi,order,max_depth,test_split, metric):
     Input('qoi-select','value'),
     Input('tree-select','value'),
     Input("tree-graph", "selected_node"))
-def create_tree_graph(dt_pickled,pt_pickled,cols,qoi,tree_select,selected_node):
+def create_tree_graph(dt,pt,cols,qoi,tree_select,selected_node):
     start = time.time()
 
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if 'tree-select' in changed_id:
         selected_node = None # Reset if just changed from DT to PT otherwise errors 
 
-    if dt_pickled is None or pt_pickled is None:
+    if dt is None or pt is None:
         return None, None
     else:
         features = [col['name'] for col in cols]
@@ -650,7 +647,6 @@ def create_tree_graph(dt_pickled,pt_pickled,cols,qoi,tree_select,selected_node):
 
         if tree_select == 'DT':
             print('time 1: %.3g' %(time.time() - start))
-            dt = jsonpickle.decode(dt_pickled)        
             print('time 2: %.3g' %(time.time() - start))
             dot_source = tree.export_graphviz(dt, out_file=None, 
                     feature_names=features,
@@ -660,7 +656,6 @@ def create_tree_graph(dt_pickled,pt_pickled,cols,qoi,tree_select,selected_node):
             print('time 3: %.3g' %(time.time() - start))
 
         elif tree_select == 'PT':
-            pt = jsonpickle.decode(pt_pickled)
             print('time 4: %.3g' %(time.time() - start))
             dot_source = pt.get_graphviz(feature_names=features,file_name='source')
             graph = pydot.graph_from_dot_data(dot_source)[0]
@@ -723,7 +718,7 @@ def clean_node_label(node,tree):
     Input('tree-select','value'),
     Input("tree-graph", "selected_node"))
 
-def display_sobol_plot(pt_pickled,cols,qoi,tree_select,selected_node):
+def display_sobol_plot(pt,cols,qoi,tree_select,selected_node):
     # layout
     layout={"xaxis": {"title": r'$S_i$'},'margin':{'t':0,'r':0,'l':0,'b':60},
             'paper_bgcolor':'white','plot_bgcolor':'white','autosize':True}
@@ -734,9 +729,8 @@ def display_sobol_plot(pt_pickled,cols,qoi,tree_select,selected_node):
     # Parse results
     if tree_select == 'PT':
         style = {'display':'block'}
-        if pt_pickled is not None and selected_node is not None:
+        if pt is not None and selected_node is not None:
             # Get 1st order Sobol indices for selected node
-            pt = jsonpickle.decode(pt_pickled)
             node = pt.get_node(int(selected_node))
             if node is None: # This occurs when a selected node no longer exists (i.e. because max_depth reduced after selecting node)
                 return fig, style

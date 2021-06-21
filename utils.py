@@ -13,7 +13,11 @@ def strip_tree(polytree):
 
         # Strip attributes
         node.pop("data", None)
-        del node['poly'].inputs, node['poly'].outputs
+        # would be more elegent to loop through with delattr, but hard code with del instead for speed
+        del node['poly'].inputs, node['poly'].outputs, node['poly'].subsampling_algorithm_function, node['poly'].subsampling_algorithm_name,\
+                node['poly'].sampling_args, node['poly'].quadrature, node['poly'].sampling_ratio,\
+                node['poly'].solver, node['poly'].solver_args, node['poly'].variable,\
+                node['poly'].output_variances, node['poly'].mesh
 
         # Go to children
         _recurse(node["children"]["left"])
@@ -23,25 +27,25 @@ def strip_tree(polytree):
     _recurse(polytree.tree)
     return polytree
 
-## FOR DEBUGGING
-#def print_tree(polytree):
-#    '''
-#    Recurse tree and print attributes.
-#    '''
-#    def _recurse(node):                   
-#        if node is None: 
-#            return
-#
-#        # Strip attributes
-#        print(node)
-#        print(dir(node['poly']))
-#
-#        # Go to children
-#        _recurse(node["children"]["left"])
-#        _recurse(node["children"]["right"])
-#    
-#    # Kick us off...
-#    _recurse(polytree.tree)
+# FOR DEBUGGING
+def print_tree(polytree):
+    '''
+    Recurse tree and print attributes.
+    '''
+    def _recurse(node):                   
+        if node is None: 
+            return
+
+        # Strip attributes
+        print(node)
+        print(dir(node['poly']))
+
+        # Go to children
+        _recurse(node["children"]["left"])
+        _recurse(node["children"]["right"])
+    
+    # Kick us off...
+    _recurse(polytree.tree)
 
 
 def convert_latex(text):
