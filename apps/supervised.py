@@ -34,7 +34,7 @@ from app import app
 ###################################################################
 cache = Cache(app.server, config={
     'CACHE_TYPE': 'filesystem',
-    'CACHE_DIR': './tmp/cache_dir',
+    'CACHE_DIR': './tmp/',
     'CACHE_DEFAULT_TIMEOUT': 3600,
 })
 

@@ -128,5 +128,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# cache dir
-tmp/cache_dir/*
+# tmp dir
+tmp/
