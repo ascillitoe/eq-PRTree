@@ -239,7 +239,7 @@ maxdepth_slider = dbc.FormGroup(
 traintest_slider = dbc.FormGroup(
     [
         dbc.Label('Test split (%)', html_for="traintest-slider"),
-        dcc.Slider(id='traintest-slider',min=0, max=50,value=0,
+        dcc.Slider(id='traintest-slider',min=0, max=50,value=20,
             tooltip = { 'always_visible': True, 'placement': 'bottom' }
         )
     ],
@@ -587,7 +587,7 @@ def compute_trees(n_clicks,data,cols,qoi,order,max_depth,test_split, metric):
             # Train/test split
             test_split /= 100
             X_train, X_test, y_train, y_test = eq.datasets.train_test_split(X, y,
-                                   train=float(1-test_split),random_seed=42)
+                                   train=float(1-test_split),random_seed=1)
  
             # Compute trees
             try:
@@ -661,7 +661,6 @@ def create_tree_graph(dt_pickled,pt_pickled,cols,qoi,tree_select,selected_node):
 
         # Highlight selected node (for pt only)
         if selected_node is not None and tree_select=='PT':
-
             node = graph.get_node(str(selected_node))
             if len(node)==0: # This occurs when a selected node no longer exists (i.e. because max_depth reduced after selecting node)
                 pass
