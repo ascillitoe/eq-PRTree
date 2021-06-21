@@ -25,47 +25,8 @@ from utils import convert_latex, strip_tree, print_tree
 from func_timeout import func_timeout, FunctionTimedOut
 import dash_interactive_graphviz as dig
 import pydot
-import time
 
 from app import app
-
-###################################################################
-# Setup cache (simple cache if locally run, otherwise configured
-# to use memcachier on heroku)
-###################################################################
-#cache = Cache(app.server, config={
-#    'CACHE_TYPE': 'filesystem',
-#    'CACHE_DIR': './tmp/',
-#    'CACHE_DEFAULT_TIMEOUT': 3600,
-#})
-#
-#cache_servers = os.environ.get('MEMCACHIER_SERVERS')
-#if cache_servers == None:
-#    # Fall back to simple in memory cache (development)
-#    cache = Cache(app.server,config={'CACHE_TYPE': 'SimpleCache'})
-#else:
-#    cache_user = os.environ.get('MEMCACHIER_USERNAME') or ''
-#    cache_pass = os.environ.get('MEMCACHIER_PASSWORD') or ''
-#    cache = Cache(app.server,
-#        config={'CACHE_TYPE': 'SASLMemcachedCache',
-#                'CACHE_MEMCACHED_SERVERS': cache_servers.split(','),
-#                'CACHE_MEMCACHED_USERNAME': cache_user,
-#                'CACHE_MEMCACHED_PASSWORD': cache_pass,
-#                'CACHE_OPTIONS': { 'behaviors': {
-#                    # Faster IO
-#                    'tcp_nodelay': True,
-#                    # Keep connection alive
-#                    'tcp_keepalive': True,
-#                    # Timeout for set/get requests
-#                    'connect_timeout': 2000, # ms
-#                    'send_timeout': 750 * 1000, # us
-#                    'receive_timeout': 750 * 1000, # us
-#                    '_poll_timeout': 2000, # ms
-#                    # Better failover
-#                    'ketama': True,
-#                    'remove_failed': 1,
-#                    'retry_timeout': 2,
-#                    'dead_timeout': 30}}})
 
 ###################################################################
 # Collapsable more info card
@@ -548,8 +509,8 @@ def compute_trees_memoize(X_train, y_train, max_depth, order):
     pt = eq.polytree.PolyTree(splitting_criterion='loss_gradient',order=order,max_depth=max_depth)
     pt.fit(X_train,y_train)
     pt = strip_tree(pt)
-    os.system('ls -lsh ./tmp/')
-    print_tree(pt)
+    #os.system('ls -lsh ./tmp/')
+    #print_tree(pt)
 
     return dt, pt
 
@@ -631,55 +592,54 @@ def compute_trees(data,cols,qoi,order,max_depth,test_split, metric):
     Input('upload-data-table', 'columns'),
     Input('qoi-select','value'),
     Input('tree-select','value'),
-    Input("tree-graph", "selected_node"))
-def create_tree_graph(dt,pt,cols,qoi,tree_select,selected_node):
-    start = time.time()
-
+    Input("tree-graph", "selected_node"),
+    State('tree-graph','dot_source'))
+def create_tree_graph(dt,pt,cols,qoi,tree_select,selected_node,dot_source):
+    # Reset selected node if just changed from DT to PT otherwise errors 
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if 'tree-select' in changed_id:
-        selected_node = None # Reset if just changed from DT to PT otherwise errors 
+        selected_node = None
 
-    if dt is None or pt is None:
-        return None, None
+    # If selected node was the last thing updated, skip processing of graphviz and use existing "dot_source"
+    if 'tree-graph.selected_node' not in changed_id:
+        if dt is None or pt is None:
+            return None, None
+        else:
+            features = [col['name'] for col in cols]
+            features.remove(qoi)
+
+            if tree_select == 'DT':
+                dot_source = tree.export_graphviz(dt, out_file=None, 
+                        feature_names=features,
+                        filled=False, rounded=True,  
+                        special_characters=True)  
+                graph = pydot.graph_from_dot_data(dot_source)[0]
+
+            elif tree_select == 'PT':
+                dot_source = pt.get_graphviz(feature_names=features,file_name='source')
+                graph = pydot.graph_from_dot_data(dot_source)[0]
+
+            # Reset stylings so pt and dt match
+            for node in graph.get_nodes():
+                clean_node_label(node,tree_select)
+                node.set('style','filled, rounded')
+                node.set('fillcolor','white')
+            for edge in graph.get_edges():
+                edge.set('fillcolor','black')
     else:
-        features = [col['name'] for col in cols]
-        features.remove(qoi)
+        graph = pydot.graph_from_dot_data(dot_source)[0]
 
-        if tree_select == 'DT':
-            print('time 1: %.3g' %(time.time() - start))
-            print('time 2: %.3g' %(time.time() - start))
-            dot_source = tree.export_graphviz(dt, out_file=None, 
-                    feature_names=features,
-                    filled=False, rounded=True,  
-                    special_characters=True)  
-            graph = pydot.graph_from_dot_data(dot_source)[0]
-            print('time 3: %.3g' %(time.time() - start))
-
-        elif tree_select == 'PT':
-            print('time 4: %.3g' %(time.time() - start))
-            dot_source = pt.get_graphviz(feature_names=features,file_name='source')
-            graph = pydot.graph_from_dot_data(dot_source)[0]
-            print('time 5: %.3g' %(time.time() - start))
-
-        # Reset stylings so pt and dt match
+    # Highlight selected node (for pt only)
+    if selected_node is not None and tree_select=='PT':
         for node in graph.get_nodes():
-            clean_node_label(node,tree_select)
-            node.set('style','filled, rounded')
-            node.set('fillcolor','white')
-        for edge in graph.get_edges():
-            edge.set('fillcolor','black')
-        print('time 6: %.3g' %(time.time() - start))
-       
-        # Highlight selected node (for pt only)
-        if selected_node is not None and tree_select=='PT':
-            node = graph.get_node(str(selected_node))
-            if len(node)==0: # This occurs when a selected node no longer exists (i.e. because max_depth reduced after selecting node)
-                pass
-            else:
-                node[0].set('fillcolor','#87CEFA')
-        print('time 7: %.3g' %(time.time() - start))
+            node.set('fillcolor','white') # reset colors
+        node = graph.get_node(str(selected_node))
+        if len(node)==0: # This occurs when a selected node no longer exists (i.e. because max_depth reduced after selecting node)
+            pass
+        else:
+            node[0].set('fillcolor','#87CEFA')
 
-        return None, graph.to_string()
+    return None, graph.to_string()
 
 def clean_node_label(node,tree):
     string = node.get('label')

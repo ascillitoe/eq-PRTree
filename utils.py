@@ -16,8 +16,7 @@ def strip_tree(polytree):
         # would be more elegent to loop through with delattr, but hard code with del instead for speed
         del node['poly'].inputs, node['poly'].outputs, node['poly'].subsampling_algorithm_function, node['poly'].subsampling_algorithm_name,\
                 node['poly'].sampling_args, node['poly'].quadrature, node['poly'].sampling_ratio,\
-                node['poly'].solver, node['poly'].solver_args, node['poly'].variable,\
-                node['poly'].output_variances, node['poly'].mesh
+                node['poly'].solver, node['poly'].solver_args, node['poly'].variable, node['poly'].output_variances
 
         # Go to children
         _recurse(node["children"]["left"])
