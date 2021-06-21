@@ -547,7 +547,7 @@ def compute_trees_memoize(X_train, y_train, max_depth, order):
     pt = eq.polytree.PolyTree(splitting_criterion='loss_gradient',order=order,max_depth=max_depth)
     pt.fit(X_train,y_train)
     pt = strip_tree(pt)
-    os.system('ls -lsh /tmp/')
+    os.system('ls -lsh ./tmp/')
 #    print_tree(pt)
 
     return jsonpickle.encode(dt), jsonpickle.encode(pt)

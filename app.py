@@ -2,7 +2,7 @@ import dash
 import dash_bootstrap_components as dbc
 import os
 
-os.makedirs(".tmp/", exist_ok=True)
+os.makedirs("tmp/", exist_ok=True)
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True,
         external_stylesheets=[dbc.themes.SPACELAB, 'https://codepen.io/chriddyp/pen/bWLwgP.css'],
